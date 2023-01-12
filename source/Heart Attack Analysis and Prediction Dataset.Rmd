@@ -1,0 +1,705 @@
+---
+title: 'Heart Attack Analysis & Prediction Dataset'
+author: "Autores: Alba Sanz Horcajo y Carlos Santamaría de las Heras"
+date: "Enero 2023"
+output:
+  html_document:
+    highlight: default
+    number_sections: no
+    theme: cosmo
+    toc: yes
+    toc_depth: 4
+    includes:
+      in_header: Alba_Carlos-PRA2-header.html
+  word_document: default
+  pdf_document:
+    latex_engine: xelatex
+    highlight: zenburn
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Detalles de la actividad
+
+------------------------------------------------------------------------
+
+## 1.1. Descripción
+
+Esta prueba de evaluación continua cubre los Módulos 3 (Clasificación: árboles de decisión) y el Módulo 8 (Evaluación de modelos) del programa de la asignatura.
+
+En esta práctica se elabora un caso práctico orientado a aprender a identificar los datos relevantes para un proyecto analítico y usar las herramientas de integración, limpieza, validación y análisis de las mismas.
+
+## 1.2. Competencias
+
+En esta práctica se desarrollan las siguientes competencias del Máster de Data Science:
+
+-   Capacidad de analizar un problema en el nivel de abstracción adecuado a cada situación y aplicar las habilidades y conocimientos adquiridos para abordarlo y resolverlo.
+
+-   Capacidad para aplicar las técnicas específicas de tratamiento de datos (integración, transformación, limpieza y validación) para su posterior análisis.
+
+## 1.3. Objetivos
+
+Los objetivos concretos de esta práctica son:
+
+-   Aprender a aplicar los conocimientos adquiridos y su capacidad de resolución de problemas en entornos nuevos o poco conocidos dentro de contextos más amplios o multidisciplinares.
+
+-   Saber identificar los datos relevantes y los tratamientos necesarios (integración, limpieza y validación) para llevar a cabo un proyecto analítico.
+
+-   Aprender a analizar los datos adecuadamente para abordar la información contenida en los datos.
+
+-   Identificar la mejor representación de los resultados para aportar conclusiones sobre el problema planteado en el proceso analítico.
+
+-   Actuar con los principios éticos y legales relacionados con la manipulación de datos en función del ámbito de aplicación.
+
+-   Desarrollar las habilidades de aprendizaje que les permitan continuar estudiando de un modo que tendrá que ser en gran medida autodirigido o autónomo.
+
+-   Desarrollar la capacidad de búsqueda, gestión y uso de información y recursos en el ámbito de la ciencia de datos.
+
+# 2. Resolución
+
+## 2.1 Descripción del dataset
+
+Para la realiación de esta práctica se ha elegido el dataset proporcionado en la asignatura al ser un data set muy rico en variables y con grandes posibilidades de análisis. A su vez, **se ha optado por** su realización en **R** ya que **la primera práctica la realizamos en Python** y de esta manera ampliamos nuestros conocimientos con otro lenguaje de programación diferente.
+
+El conjunto de datos objeto de análisis se ha obtenido a partir de este enlace en [Kaggle](https://www.kaggle.com/datasets/rashikrahmanpritom/heart-attack-analysis-prediction-dataset) y cuyo nombre es: **"Heart Attack Analysis & Prediction dataset".**
+
+Instalamos y cargamos las librerías necesarias
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# https://cran.r-project.org/web/packages/ggplot2/index.html
+if(!require(ggplot2)){
+    install.packages('ggplot2', repos='http://cran.us.r-project.org')
+    library(ggplot2)
+}
+# https://cran.r-project.org/web/packages/dplyr/index.html
+if (!require('dplyr')) install.packages('dplyr'); library('dplyr')
+library(scales)
+if (!require('GGally')) install.packages("GGally")
+library('GGally')
+```
+
+### **2.1.1 Cargamos y mostramos el fichero de datos.**
+
+```{r}
+path = 'heart.csv'
+datos_brutos <- read.csv(path, row.names=NULL)
+```
+
+### 2.1.2 Exploración del conjunto de datos
+
+Verificamos la estructura del juego de datos principal. Vemos el número de columnas que tenemos y ejemplos de los contenidos de las filas.
+
+```{r}
+str(datos_brutos)
+```
+
+```{r}
+dim(datos_brutos)
+filas <- dim(datos_brutos)[1]
+print(paste("El número de filas o registros es:", filas))
+variables <- dim(datos_brutos)[2]
+print(paste("El número de variables o atributos es:", variables))
+```
+
+Vemos que tenemos **14** variables y **303** registros.
+
+Revisamos la descripción de las variables contenidas en el fichero y si los tipos de variables se corresponden con las que hemos cargado. Las organizamos lógicamente para darles sentido y construimos un pequeño diccionario de datos utilizando la documentación auxiliar.
+
+Las variables consideradas son:
+
+-   **age** : edad del paciente
+
+-   **sex** : género del paciente (según el [foro](https://www.kaggle.com/datasets/rashikrahmanpritom/heart-attack-analysis-prediction-dataset/discussion/230875?search=sex){style="font-size: 11pt;"})
+
+    -   0: femenino
+
+    -   1: masculino
+
+-   **exang**: angina inducida por el ejercicio
+
+    -   0: no
+
+    -   1: sí
+
+-   **caa**: número de vasos principales (0-3)
+
+-   **cp**: tipo de dolor en el pecho:
+
+    -   0: angina típica
+
+    -   1: angina atípica
+
+    -   2: dolor no anginal
+
+    -   3: asintomático
+
+-   **trtbps** : presión arterial en reposo (en mm Hg)
+
+-   **chol** : colesterol en mg/dl obtenido a través del sensor de IMC
+
+-   **fbs** : (glucemia en ayunas \> 120 mg/dl)
+
+    -   0: falso
+
+    -   1: verdadero
+
+-   **oldpeak**: depresión del segmento ST inducida por el ejercicio en relación con el reposo
+
+-   **slp**: pendiente del segmento ST de ejercicio máximo:
+
+    -   0: pendiente descendente
+
+    -   1: plana
+
+    -   2: pendiente ascendente
+
+-   **thall**: talasemia:
+
+    -   0: nulo
+
+    -   1: defecto fijo
+
+    -   2: normales
+
+    -   3: defecto reversible
+
+-   **rest_ecg** : resultados electrocardiográficos en reposo
+
+    -   0: normal
+
+    -   1: con anormalidades en la onda ST-T (inversiones de onda T y/o elevación o depresión de ST \> 0,05 mV)
+
+    -   2: con hipertrofia ventricular izquierda probable o definitiva siguiendo los criterios de Estes
+
+-   **thalach** : frecuencia cardíaca máxima alcanzada
+
+-   **output**: diagnóstico de enfermedad cardíaca (estado de enfermedad angiográfico)
+
+    -   0: menor posibilidad de ataque al corazón (\<50% estrechamiento del diámetro)
+
+    -   1: mayor posibilidad de ataque al corazón (\>50% estrechamiento del diámetro)
+
+A través del dataset comentado se pretende determinar cuales son las variables de entre todas las que disponemos que tienen una mayor influencia sobre la posibilidad de tener un ataque al corazón. Un segundo objetivo sería identificar mediante contrastes de hipótesis diferencias que puedan inferirse a la población. Por último, otro objetivo sería crear modelos de clasificación que nos permita diferenciar a aquellas personas que por sus características es más probable que tengan un ataque al corazón.
+
+## 2.2 Importancia y objetivos de los análisis
+
+A partir de este conjunto de datos se plantea la problemática de determinar qué variables influyen más en los ataques al corazón o si tienen las mujeres menos ataques al corazón que los hombres. Además, se podrá proceder a crear modelos de regresión que permitan responder a estas preguntas y contrastes de hipótesis que ayuden a identificar propiedades interesantes en las muestras que puedan ser inferidas con respecto a los pacientes.
+
+**Las preguntas objetivo del análisis son:**
+
+-   ¿Cuáles son las variables cuantitativas que tienen una mayor influencia en los ataques al corazón?
+
+-   ¿Tienen las mujeres más ataques al corazón que los hombres?
+
+-   ¿Podemos clasificar a los pacientes en alta y baja probabilidad de ataque cardiaco?
+
+Este análisis puede tener gran relevancia para los profesionales de la salud, más concretamente para los especialistas en cardiología. Sabiendo cuales son las variables que tiene mayor influencia en los ataques al corazón, se podría mejorar la prevención y tratamiento de esta patología. Si se integrase el modelo de clasificación en su software de trabajo y pudiesen análizar toda su base de datos de pacientes extrayendo un listado de los pacientes considerados de riesgo, podrían llevarse a cabo campañas de prevención enfocada a esta población.
+
+## 2.3 Preprocesamiento y gestión de características
+
+### **2.3.1 Renombramos las variables**
+
+Procedemos a renombrar los campos para una mejor comprensión de los mismos.
+
+```{r}
+datos_renombrados <- rename(datos_brutos, edad = age, sexo = sex, dolor_pecho = cp, pa_reposo  = trtbps, colesterol = chol, glucemia_ayunas_mayor_120m_dl = fbs, ecg_reposo = restecg, frec_cardiaca_max  = thalachh, angina_por_ejercicio = exng, depresionST_ejercicioVSreposo = oldpeak, segmentoST_ejercicioMAX = slp, num_vasos_principales = caa, talasemia = thall, salida = output)
+str(datos_renombrados)
+```
+
+Las variables quedan finalmente de la siguiente forma:
+
+-   **edad**: edad del paciente
+
+-   **sexo** : género del paciente (según el [foro](https://www.kaggle.com/datasets/rashikrahmanpritom/heart-attack-analysis-prediction-dataset/discussion/230875?search=sex){style="font-size: 11pt;"})
+
+    -   0: femenino
+
+    -   1: masculino
+
+-   **angina_por_ejercicio**: angina inducida por el ejercicio
+
+    -   0: no
+
+    -   1: sí
+
+-   **num_vasos_principales**: número de vasos principales (0-3)
+
+-   **dolor_pecho**: tipo de dolor en el pecho:
+
+    -   0: asintomático
+
+    -   1: angina típica
+
+    -   2: angina atípica
+
+    -   3: dolor no anginal
+
+-   **pa_reposo**: presión arterial en reposo (en mm Hg)
+
+-   **colesterol**: colesterol en mg/dl obtenido a través del sensor de IMC
+
+-   **glucemia_ayunas_mayor_120mg/dl**: (glucemia en ayunas \> 120 mg/dl)
+
+    -   0: falso
+
+    -   1: verdadero
+
+-   **depresionST_ejercicioVSreposo**: depresión del segmento ST inducida por el ejercicio en relación con el reposo
+
+-   **segmentoST_ejercicioMAX**: pendiente del segmento ST de ejercicio máximo:
+
+    -   0: pendiente descendente
+
+    -   1: plana
+
+    -   2: pendiente ascendente
+
+-   **talasemia**: talasemia:
+
+    -   0: nulo
+
+    -   1: defecto fijo
+
+    -   2: normales
+
+    -   3: defecto reversible
+
+-   **ecg_reposo** : resultados electrocardiográficos en reposo
+
+    -   0: normal
+
+    -   1: con anormalidades en la onda ST-T (inversiones de onda T y/o elevación o depresión de ST \> 0,05 mV)
+
+    -   2: con hipertrofia ventricular izquierda probable o definitiva siguiendo los criterios de Estes
+
+-   **frec_cardiaca_max** : frecuencia cardíaca máxima alcanzada
+
+-   **salida**: diagnóstico de enfermedad cardíaca (estado de enfermedad angiográfico)
+
+    -   0: menor posibilidad de ataque al corazón (\<50% estrechamiento del diámetro)
+
+    -   1: mayor posibilidad de ataque al corazón (\>50% estrechamiento del diámetro)
+
+### **2.3.2 Mostramos las estadisticas básicas**
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+summary(datos_renombrados)
+```
+
+Mostramos las estadísticas básicas:
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+summary(datos_renombrados)
+```
+
+De las cuales podemos destacar lo siguiente:
+
+-   La **edad mínima** de los pacientes es de **29 años** y la **máxima** de **77 años**.
+
+-   Tenemos información de **96 personas de género femenino y 207 de género masculino**.
+
+-   Respecto al dolor de pecho, lo más común es ser **asintomático** lo que representa el **47,19%** del total de casos, seguido de **angina atípica** con un **28,71%.**
+
+-   La **media** de **presión arterial en reposo** se sitúa en los **131.6mm Hg.**
+
+-   El **colesterol máximo** registrado es de **564mg/dl** y la **mínimo 126mg/dl.**
+
+-   Un total de **45** personas han registrado **glucemia en ayunas \> 120 mg/dl**, mientras que 258 no.
+
+-   La prueba de **electrocardiografo** **en** **reposo** ha resultado **normal** en **147 personas** mientras que en 156 se han encontrado resultados anormales.
+
+-   La **frecuencia cardíaca máxima** alcanzada es de **202 lat/min**, la **media** de **150 lat/min** y la **mínima** de **71lat/min.**
+
+-   Se ha producido una **angina inducida por el ejercicio** en **99 personas** (32,67%).
+
+-   La depresión del segmento ST inducida por el ejercicio en relación con el reposo es de 1,04.
+
+-   La pendiente del segmento ST de ejercicio máximo es ascendente en 142 personas (46,87%), plana en 140 (46,20%) y descendente en 21 (6,93%).
+
+-   La media de vasos principales es de 1 (0,73).
+
+-   Un total de 166 personas no tienen trastorno de la sangre hereditario (talasemia normal)
+
+-   Un total de 165 personas tienen una mayor posibilidad de ataque al corazón (54,46%)
+
+### 2.3.3 Incoherencias
+
+-   Se observa que en la página [Kaggle](https://www.kaggle.com/datasets/rashikrahmanpritom/heart-attack-analysis-prediction-dataset) de descarga del dataset se indica que el número de vasos principales (num_vasos_principales) puede ser entre 0 y 3, sin embargo se detectan registros con un valor de 4.
+
+## 2.4 Limpieza
+
+Tras haber realizado en el apartado anterior una primera medida de acondicionado de los datos (pasar las variables cualitativas de int a factor) para poder realizar un mejor análisis exploratorio de los datos, procedemos a terminar de realizar la limpieza y acondicionado de datos para poder ser usado en procesos de modelado.
+
+### 2.4.1 Gestión de valores nulos/vacíos
+
+El siguiente paso será la limpieza de datos, para lo cual primero comprobamos si hay valores vacíos o nulos en el conjunto de datos
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+print('NA')
+colSums(is.na(datos_renombrados))
+print('Blancos')
+colSums(datos_renombrados=="")
+```
+
+Vemos que no hay valores nulos ni vacíos en los datos, por lo cual no tendremos que realizar ninguna acción de eliminar o modificar registros.
+
+### **2.4.2 Mostramos valores anómalos/outliers**
+
+```{r}
+boxplot(datos_renombrados, las = 2)
+
+```
+
+Como podemos ver, encontramos valores anómalos, sobretodo en la variable pa_reposo y colesterol.
+
+-   Mostramos los valores anómalos de pa_reposo:
+
+```{r}
+pa_reposo_outliers <- boxplot(datos_renombrados$pa_reposo, col = "#009999", main = "pa_reposo outliers", xlab = "Pa_reposo", ylab = "Value")
+```
+
+```{r}
+pa_reposo_outliers$out
+```
+
+Mostramos los valores anómalos de **colesterol**:
+
+```{r}
+colesterol_outliers <- boxplot(datos_renombrados$colesterol, col = "#009999", main = "Colesterol outliers", xlab = "Colesterol", ylab = "Value")
+```
+
+```{r}
+colesterol_outliers$out
+```
+
+No se van a eliminar los valores anómalos para preservar la mayor variabilidad posible en los datos. Sin embargo, estos se tendrán en cuenta para intentar disminuir la influencia de estos datos en futuros análisis.
+
+## 2.5 Análisis de los datos
+
+### **2.5.1 Discretizamos las variables numéricas**
+
+Las variables se están considerando como variables continuas cuando algunas de ellas son categóricas, por este motivo, antes de comenzar con el análisis, vamos a crear el dataframe **datos_categoricos** en el que tengamos correctamente representado las variables continuas y categóricas.
+
+A su vez, crearemos el dataframe **datos_discretizados** discretizando las variables numéricas: *edad, pa_reposo y [colesterol](https://professional.heart.org/-/media/Files/Health-Topics/Cholesterol/Cholesterol-guide-for-HC-Practitioners-English.pdf), [frec_cardiaca_max](https://www.cora.health/es/guia/tension-arterial-normal/#:~:text=Como%20podemos%20observar%20en%20la,considerada%20tensi%C3%B3n%20arterial%20normal%20alta.)*:
+
+```{r}
+datos_categoricos <- datos_renombrados
+
+datos_categoricos$sexo = factor(datos_categoricos$sexo, levels = c(0:1), labels = c("femenino", "masculino"))
+
+datos_categoricos$angina_por_ejercicio = factor(datos_categoricos$angina_por_ejercicio, levels = c(0:1), labels = c("no", "si"))
+
+datos_categoricos$dolor_pecho = factor(datos_categoricos$dolor_pecho, levels = c(0:3), labels = c("asintomático","angina típica", "angina atípica", "dolor no anginal"))
+
+datos_categoricos$glucemia_ayunas_mayor_120m_dl = factor(datos_categoricos$glucemia_ayunas_mayor_120m_dl, levels = c(0:1), labels = c("no", "si"))
+
+datos_categoricos$segmentoST_ejercicioMAX = factor(datos_categoricos$segmentoST_ejercicioMAX, levels = c(0:2), labels = c("pendiente descendente", "plana", "pendiente ascendente"))
+
+datos_categoricos$talasemia = factor(datos_categoricos$talasemia, levels = c(0:3), labels = c("nulo", "defecto fijo", "normales", "defecto reversible"))
+
+datos_categoricos$ecg_reposo = factor(datos_categoricos$ecg_reposo, levels = c(0:2), labels = c("normal", "anormalidades en la onda ST-T", "hipertrofia ventricular izquierda"))
+
+datos_categoricos$salida = factor(datos_categoricos$salida, levels = c(0:1), labels = c("menor posibilidad de ataque al corazón", "mayor posibilidad de ataque al corazón"))
+
+```
+
+```{r}
+datos_discretizados <- datos_categoricos
+datos_discretizados$edad <- cut(datos_discretizados$edad, breaks = c(25,47,62,86), labels = c("jovenes", "media edad","edad avanzada"))
+datos_discretizados$pa_reposo <- cut(datos_discretizados$pa_reposo, breaks = c(50,120,139,159,179,240), labels = c("normal", "normal-alta","hipertension leve","hipertension moderada","hipertension severa"))
+datos_discretizados$colesterol <- cut(datos_discretizados$colesterol, breaks = c(0,170,199,240,600), labels = c("bueno", "valores limite","alto", "hipercolesterolemia severa"))
+datos_discretizados$frec_cardiaca_max <- cut(datos_discretizados$frec_cardiaca_max, breaks = c(0,110,160,240), labels = c("bradicardia", "normal","taquicardia"))
+
+head(datos_discretizados)
+```
+
+```{r}
+str(datos_discretizados)
+```
+
+### **2.5.2 Normalizamos las variables numéricas**
+
+Creamos el dataframe **datos_normalizados** normalizando las variables numéricas: *edad, pa_reposo y colesterol, frec_cardiaca_max:*
+
+```{r}
+library(scales)
+datos_normalizados <- datos_renombrados
+datos_normalizados$sexo = factor(datos_normalizados$sexo, levels = c(0:1), labels = c("femenino", "masculino"))
+datos_normalizados$angina_por_ejercicio = factor(datos_normalizados$angina_por_ejercicio, levels = c(0:1), labels = c("no", "si"))
+datos_normalizados$dolor_pecho = factor(datos_normalizados$dolor_pecho, levels = c(0:3), labels = c("asintomático","angina típica", "angina atípica", "dolor no anginal"))
+datos_normalizados$glucemia_ayunas_mayor_120m_dl = factor(datos_normalizados$glucemia_ayunas_mayor_120m_dl, levels = c(0:1), labels = c("no", "si"))
+datos_normalizados$segmentoST_ejercicioMAX = factor(datos_normalizados$segmentoST_ejercicioMAX, levels = c(0:2), labels = c("pendiente descendente", "plana", "pendiente ascendente"))
+datos_normalizados$talasemia = factor(datos_normalizados$talasemia, levels = c(0:3), labels = c("nulo", "defecto fijo", "normales", "defecto reversible"))
+datos_normalizados$ecg_reposo = factor(datos_normalizados$ecg_reposo, levels = c(0:2), labels = c("normal", "anormalidades en la onda ST-T", "hipertrofia ventricular izquierda"))
+datos_normalizados$edad <- rescale(datos_normalizados$edad)
+datos_normalizados$pa_reposo <- rescale(datos_normalizados$pa_reposo)
+datos_normalizados$colesterol <- rescale(datos_normalizados$colesterol)
+datos_normalizados$frec_cardiaca_max <- rescale(datos_normalizados$frec_cardiaca_max)
+
+head(datos_normalizados)
+```
+
+### **2.5.3 Análisis de la relación de las variables con target**
+
+Vamos a analizar la relación entre las diferentes variables y target, que en este caso es la variable **salida**.
+
+-   **edad vs salida**
+
+```{r}
+ggplot(datos_discretizados[1:filas,],aes(x=edad,fill=salida))+geom_bar(position="fill")+ylab("Frequencia") + scale_fill_manual(values=c("turquoise4", "violetred4"))
+```
+
+-   **sexo vs salida**
+
+```{r}
+ggplot(datos_discretizados[1:filas,],aes(x=sexo ,fill=salida))+geom_bar(position="fill")+ylab("Frequencia") + scale_fill_manual(values=c("turquoise4", "violetred4"))
+```
+
+-   **dolor_pecho vs salida**
+
+```{r}
+ggplot(datos_discretizados[1:filas,],aes(x=dolor_pecho,fill=salida))+geom_bar(position="fill")+ylab("Frequencia") + scale_fill_manual(values=c("turquoise4", "violetred4"))
+```
+
+-   **pa_reposo vs salida**
+
+```{r}
+ggplot(datos_discretizados[1:filas,],aes(x=pa_reposo,fill=salida))+geom_bar(position="fill")+ylab("Frequencia") + scale_fill_manual(values=c("turquoise4", "violetred4"))
+```
+
+-   **colesterol vs salida**
+
+```{r}
+ggplot(datos_discretizados[1:filas,],aes(x=colesterol ,fill=salida))+geom_bar(position="fill")+ylab("Frequencia") + scale_fill_manual(values=c("turquoise4", "violetred4"))
+```
+
+-   **glucemia_ayunas_mayor_120m_dl vs salida**
+
+```{r}
+ggplot(datos_discretizados[1:filas,],aes(x=glucemia_ayunas_mayor_120m_dl ,fill=salida))+geom_bar(position="fill")+ylab("Frequencia") + scale_fill_manual(values=c("turquoise4", "violetred4"))
+```
+
+-   **ecg_reposo vs salida**
+
+```{r}
+ggplot(datos_discretizados[1:filas,],aes(x=ecg_reposo ,fill=salida))+geom_bar(position="fill")+ylab("Frequencia") + scale_fill_manual(values=c("turquoise4", "violetred4"))
+```
+
+-   **frec_cardiaca_max vs salida**
+
+```{r}
+ggplot(datos_discretizados[1:filas,],aes(x=frec_cardiaca_max ,fill=salida))+geom_bar(position="fill")+ylab("Frequencia") + scale_fill_manual(values=c("turquoise4", "violetred4"))
+```
+
+-   **angina_por_ejercicio vs salida**
+
+```{r}
+ggplot(datos_discretizados[1:filas,],aes(x=angina_por_ejercicio,fill=salida))+geom_bar(position="fill")+ylab("Frequencia") + scale_fill_manual(values=c("turquoise4", "violetred4"))
+```
+
+-   **segmentoST_ejercicioMAX vs salida**
+
+```{r}
+ggplot(datos_discretizados[1:filas,],aes(x=segmentoST_ejercicioMAX,fill=salida))+geom_bar(position="fill")+ylab("Frequencia") + scale_fill_manual(values=c("turquoise4", "violetred4"))
+```
+
+-   **num_vasos_principales vs salida**
+
+```{r}
+ggplot(datos_discretizados[1:filas,],aes(x=num_vasos_principales,fill=salida))+geom_bar(position="fill")+ylab("Frequencia") + scale_fill_manual(values=c("turquoise4", "violetred4"))
+```
+
+-   **talasemia vs salida**
+
+```{r}
+ggplot(datos_discretizados[1:filas,],aes(x=talasemia,fill=salida))+geom_bar(position="fill")+ylab("Frequencia") + scale_fill_manual(values=c("turquoise4", "violetred4"))
+```
+
+-   **edad vs salida**
+
+```{r}
+ggplot(datos_discretizados[1:filas,],aes(x=edad,fill=salida))+geom_bar(position="fill")+ylab("Frequencia") + scale_fill_manual(values=c("turquoise4", "violetred4"))
+```
+
+### 2.5.4 Análisis descriptivo y de correlaciones
+
+Vamos a llevar a cabo un estudio de la correlación entre las variables numéricas. Para eso vamos a calcular la **correlación de Pearson** sobre el dataframe datos_normalizados ya que se ignoraran aquellas columnas que no sean numéricas:
+
+```{r}
+ggcorr(datos_normalizados[,c(1:14)], method = c("everything", "pearson"), nbreaks = 10, name = "Leyenda correlaciones", legend.size = 12, label = TRUE, label_size = 3, label_round = 1, hjust= 1, size=4, layout.exp = 9) + labs(title="Correlación de Pearson entre las variables")+ theme(plot.title=element_text(color='Blue',hjust=0.75,size=15))
+```
+
+Centrándonos en las relaciones que nos interesan para el objetivo del proyecto, es decir, **la relación de salida con el resto de variables**, podemos observar que la mayor correlación positiva encontrada entre salida y el resto de variables es entre salida y frec_cardiaca_max con una correlación aproximada de 0,4. En cuanto a las correlaciones negativas encontramos con un valor de -0,4 la correlación entre salida y num_vasos_principales y la correlación entre salida y depresionST_ejercicioVSreposo. Entre el resto de variables encontramos una correlación moderada entre edad y frec_cardiaca_max (-0,4), entre edad y pa_reposo (0,3) y entre edad y num_vasos_principales (0,3).
+
+### 2.5.5 Grupos de datos a analizar
+
+Vamos a analizar el grupo de mujeres con respecto al grupo de hombres. Vamos a realizar un contraste de hipótesis entrre estos dos grupos para estudiar si las mujeres tienen estadísticamente más probabilidad de ataques al corazon que los hombres. Además vamos a analizar al grupo con output 1(mayor posibilidad de ataque al corazón) con respecto al grupo con output 0 (menor posibilidad de ataque al corazón) para generar un modelo de clasificación que permita determinar si un registro pertenece a un grupo o a otro.
+
+### 2.5.5 Comprobación de la normalidad y homogeneidad de la varianza
+
+Se va a llevar a cabo un contraste unilateral de dos muestras independientes sobre la media. Al ser el tamaño de las muestras mayor de 30 asumimos normalidad y como las varianzas poblacionales son desconocidas tenemos que comprobar si son desconocidas iguales o diferentes realizando el test de homoscedasticidad.
+
+Realizamos el test de homoscedasticidad
+
+La hipótesis nula y alternativa son:
+
+```{r}
+print("HO: σ12 = σ22")
+print("H1: σ12 ≠ σ22")
+```
+
+```{r}
+femenino <- datos_renombrados$salida[datos_renombrados$sex==0]
+masculino <- datos_renombrados$salida[datos_renombrados$sex==1]
+var.test(femenino, masculino)
+```
+
+Dado que p es mayor que el nivel de significancia o alfa (0.05) podemos aceptar la hipótesis nula (varianzas iguales).
+
+### 2.5.6 Contraste de hipótesis
+
+Como se ha aceptado la hipótesis de varianzas iguales, aplicamos el test unilateral sobre la media de dos poblaciones independientes con varianza desconocida igual y asumimos normalidad. Se elige muestras independientes porque los datos no tienen relación entre ellos y proceden de poblaciones diferentes (como podemos ver vienen de registros distintos).
+
+Las hipótesis serían:
+
+```{r}
+print("HO:  sigma m = sigma h")
+print("H1:  sigma m > sigma h")
+```
+
+La hipótesis nula indica que no hay diferencias estadísticamente significativas entre la media de la probabilidad de ataques al corazón en mujeres y en hombres. La hipótesis alternativa indica que hay diferencias estadísticamente significativas entre la media de la probabilidad de ataques al corazón en mujeres y en hombres, siendo las mujeres las que tienen una mayor probabilidad media de ataques al corazón.
+
+```{r}
+t.test(x=femenino, y=masculino, var.equal=TRUE, alpha=0.05, alternative="greater")
+```
+
+Dado que p es menor que el nivel de significancia o alfa(0.05) podemos rechazar la hipótesis nula a favor de la alternativa.Por tanto, concluimos que exiten diferencias estadísticamente signiticativas en la media de la probabilidad de ataques al corazón de forma que las mujeres tienen más probabilidad de ataques al corazón que los hombres.
+
+### 2.5.7 Modelo de clasificación
+
+Dividimos los datos entre el conjunto de entrenamiento y de prueba diferenciando entre la variable objetivo y el resto de variables
+
+```{r}
+set.seed(20)
+y <- datos_discretizados[,14]
+X <- datos_discretizados[,c(1:13)]
+split_prop <- 3
+indexes = sample(1:nrow(datos_discretizados), size=floor(((split_prop-1)/split_prop)*nrow(datos_discretizados)))
+trainX<-X[indexes,]
+trainy<-y[indexes]
+testX<-X[-indexes,]
+testy<-y[-indexes]
+```
+
+Mostramos los conjuntos de datos creados:
+
+```{r}
+summary(trainX)
+```
+
+```{r}
+summary(trainy)
+```
+
+```{r}
+summary(testX)
+```
+
+```{r}
+summary(testy)
+```
+
+Se crea el árbol de decisión usando los datos de entrenamiento y se gráfica
+
+```{r}
+#install.packages('rpart.plot'); 
+library('rpart.plot')
+
+model <- rpart(trainy ~ ., data = trainX)
+
+rpart.plot(model)
+```
+
+Se muestran los datos del modelo:
+
+```{r}
+summary(model)
+```
+
+Se muestran las reglas:
+
+```{r}
+reglas <- rpart.rules(model)
+reglas
+```
+
+Se calcula la precisión del modelo:
+
+```{r}
+predicted_model <- predict( model, testX, type="class" )
+print(sprintf("La precisión del árbol es: %.4f %%",100*sum(predicted_model == testy) / length(predicted_model)))
+```
+
+Analizamos mediante una matriz de confusión los tipos de errores cometidos:
+
+```{r}
+mat_conf<-table(testy,Predicted=predicted_model)
+mat_conf
+```
+
+## 2.6 Conclusiones de los análisis y modelos realizados
+
+Al analizar las correlaciones de las variables de interés para el estudio hemos podido observar que la mayor correlación encontrada entre salida y el resto de variables es entre salida y frec_cardiaca_max con una correlación aproximada de **0,4**. Entre el resto de variables encontramos una correlación moderada entre edad y pa_reposo **0,3** y entre edad y num_vasos_principales **0,3**.
+
+El contraste de hipótesis nos ha permitido concluir que existen diferencias estadísticamente significativas (al **95%**) en la media de la probabilidad de ataques al corazón de forma que las mujeres tienen más probabilidad de ataques al corazón que los hombres.
+
+En cuanto al modelo de clasificación generado podemos ver que ha alcanzado una precisión del **78.22%**.
+
+En la tabla se puede observar como el modelo:
+
+-   Ha clasificado correctamente **79 casos** (la suma de los valores diagonales)
+
+-   Ha clasificado erróneamente **22** (suma del resto de valores).
+
+**De los 22 casos erróneamente clasificados 8 corresponden a falsos negativos**. Es decir, un 7.92% de los casos serán clasificados con una probabilidad menor de ataque al corazón cuando en realidad tienen una mayor probabilidad.
+
+En un área como el de la salud, a pesar de haber obtenido una precisión moderada-alta, un 7,92% de falsos negativos es un porcentaje elevado al poder afectar a la salud de las personas.
+
+Por todo lo expuesto, podemos concluir que un **sistema clasificador como este** **debería tomarse como una recomendación o ayuda para un profesional y no como una herramienta de diagnóstico**.
+
+# 3. Documentación consultada
+
+-   *Calvo M, Subirats L, Pérez D (2019). Introducción a la limpieza y análisis de los datos. Editorial UOC.*
+
+-   <https://scientistcafe.com/ids/regression-and-decision-tree-basic.html>
+
+-   *Árboles de decisión. Ramon Sangüesa i Solé*
+
+-   *Tutorial de Github (<https://guides.github.com/activities/hello-world/>)*
+
+-   *Squire, Megan (2015). Clean Data. Packt Publishing Ltd.*
+
+-   *Jiawei Han, Micheine Kamber, Jian Pei (2012). Data mining: concepts and techniques. Morgan Kaufmann.*
+
+-   *Jason W. Osborne (2010). Data Cleaning Basics: Best Practices in Dealing with Extreme Scores. Newborn and Infant Nursing Reviews.*
+
+-   *Peter Dalgaard (2008). Introductory statistics with R. Springer Science & Business Media.*
+
+-   *Wes McKinney (2012). Python for Data Analysis. O'Reilley Media, Inc.*
+
+# 4. Contribuciones
+
+Alba Sanz Horcajo: ASH
+
+Carlos Santamaría de las Heras: CSH
+
+-   Investigación previa: CSH, ASH
+
+-   Redacción de las respuestas: CSH, ASH
+
+-   Desarrollo del código: CSH, ASH
+
+-   Participación en el vídeo: CSH, ASH
