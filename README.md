@@ -18,7 +18,7 @@ Para ejecutar el script es necesario importar ciertas librerias, las cuales est√
 * El fichero .csv con el que trabajamos se llama: **heart.csv** (el fichero no se ha modificado, por lo que el fichero inicial y final es el mismo).
 * La memoria en pdf se llama **memoria.pdf**
 * La memoria en formato html se llama **memoria.html**, la cual hace uso de una cabecera llamada **Alba_Carlos-PRA2-header.html**
-* El DOI de Zenodo del dataset generado es el siguiente: *https://doi.org/*
+* El enlace al video es: https://drive.google.com/file/d/1WMqHBAIAvoxiebfFq01IZYx_ErmLTXNU/view?usp=sharing
 
 
 ### Notas
